@@ -1,0 +1,1 @@
+The dataset used to train YOLOv5s-CGhostnet is not currently publicly available. However, we are happy to consider providing it to interested researchers for further exploration and findings, please contact the us directly through this repository's issue tracker. 

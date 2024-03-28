@@ -1,0 +1,1 @@
+Model Weights: The pre-trained weights for YOLOv5s-CGhostnet are available for download from a public cloud storage: Google drive. The links is available at https://drive.google.com/file/d/1NBozOV-C1FQBdZVn7ukipe0tw_7J7WE6/view?usp=sharing. 
