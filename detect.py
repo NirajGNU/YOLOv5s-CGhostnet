@@ -34,10 +34,6 @@ import os
 import platform
 import sys
 from pathlib import Path
-import pandas
-from numpy import random
-import time
-import cv2
 
 import torch
 
@@ -55,7 +51,6 @@ from utils.general import (LOGGER, Profile, check_file, check_img_size, check_im
                            increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
 from utils.torch_utils import select_device, smart_inference_mode
 
-random.seed(1)
 
 @smart_inference_mode()
 def run(
@@ -104,9 +99,6 @@ def run(
     # Load model
     device = select_device(device)
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
-    model.names[1] = 'Mature'
-    model.names[2] = 'Transistion'
-    model.names[3] = 'Immature'
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
@@ -125,9 +117,6 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
-    t0 = time.time()
-    startTime = 0
-
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -140,13 +129,6 @@ def run(
         with dt[1]:
             visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
             pred = model(im, augment=augment, visualize=visualize)
-            results = model(im)
-
-
-            # print(results.pandas().xyxy[0])
-            # results.pandas().xyxy[0].value_count('name')
-            
-           
 
         # NMS
         with dt[2]:
@@ -191,19 +173,6 @@ def run(
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-                    cv2.putText(im0, "Classes", (20,560), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2)
-                    if c == 1:
-                        cv2.putText(im0, f"{n} {names[int(c)]}", (20, 600), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-                    elif c == 2:
-                         cv2.putText(im0, f"{n} {names[int(c)]}", (20, 630), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-                    elif c == 3:
-                         cv2.putText(im0, f"{n} {names[int(c)]}", (20, 660), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-                    if dt[1].dt != 0:
-                        fps = 1 /dt[1].dt
-                    else:
-                        fps = 1000 
-
-                    cv2.putText(im0, "FPS: " + str(int(fps)), (20,70), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2)
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -229,17 +198,7 @@ def run(
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
             # Stream results
-            
             im0 = annotator.result()
-            if dataset.mode != 'image':
-                currentTime = time.time()
-                fps = 1/(currentTime - startTime)
-                startTime = currentTime
-
-                cv2.putText(im0, "FPS: " + str(int(fps)), (20,70), cv2.FONT_HERSHEY_PLAIN, 2, (0,255,0), 2)
-               
-               
-
             if view_img:
                 if platform.system() == 'Linux' and p not in windows:
                     windows.append(p)
@@ -274,7 +233,6 @@ def run(
     t = tuple(x.t / seen * 1E3 for x in dt)  # speeds per image
     LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
     if save_txt or save_img:
-        print(f"The output with the result is saved in : {save_path}")
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
